@@ -301,6 +301,15 @@ int TieApplication_Run(const TieLaunchOptions* launch) {
 	}
 	Aeron_LogInfo("tie.audio", "SB16 digital PCM filter %s",
 				  app_config.requested.sb16_filter_enabled ? "enabled" : "disabled");
+	TieSpeakerLayout speaker_layout = app_config.requested.speaker_layout;
+	const int speaker_channels = TieSpeakerLayout_Channels(speaker_layout);
+	if (!Aeron_AudioSetOutputChannels(speaker_channels)) {
+		if (speaker_channels != 2)
+			Aeron_LogWarn("tie.audio", "could not open a %d-channel audio device; using stereo",
+						  speaker_channels);
+		speaker_layout = TIE_SPEAKER_LAYOUT_STEREO;
+	}
+	Aeron_LogInfo("tie.audio", "speaker output: %d channels", TieSpeakerLayout_Channels(speaker_layout));
 	Aeron_PumpEvents();
 
 	const char* remaster_dir = NULL;
@@ -353,6 +362,7 @@ int TieApplication_Run(const TieLaunchOptions* launch) {
 			.prefer_tie95_frontend_voices = app_config.requested.prefer_tie95_frontend_voices,
 			.music_source = app_config.requested.music_source,
 			.music_ducking_volume_percent = app_config.requested.music_ducking_volume_percent,
+			.speaker_layout = speaker_layout,
 		},
 	};
 	AeronDx5_Configure(&(AeronDx5Config) {

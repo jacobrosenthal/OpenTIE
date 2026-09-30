@@ -9,7 +9,7 @@
 
 #define TIE_AUDIO_QUANTUM_FRAMES 256
 #define TIE_AUDIO_QUEUE_FRAMES 2048
-#define TIE_AUDIO_CHANNELS 2
+#define TIE_AUDIO_MAX_CHANNELS 8
 
 typedef struct TieAudioOutput {
 	AeronAudioStream stream;
@@ -17,7 +17,7 @@ typedef struct TieAudioOutput {
 	TieAudioRenderFunc render;
 	void* render_userdata;
 	atomic_bool stopping;
-	int16_t scratch[TIE_AUDIO_QUANTUM_FRAMES * TIE_AUDIO_CHANNELS];
+	int16_t scratch[TIE_AUDIO_QUANTUM_FRAMES * TIE_AUDIO_MAX_CHANNELS];
 } TieAudioOutput;
 
 static TieAudioOutput audio_output;
@@ -51,8 +51,8 @@ static int TieAudioOutput_Worker(void* userdata) {
 }
 
 bool TieAudioOutput_Start(int sample_rate, int channels, TieAudioRenderFunc render, void* render_userdata) {
-	if (sample_rate <= 0 || channels != TIE_AUDIO_CHANNELS || !render || audio_output.stream ||
-		audio_output.worker) {
+	if (sample_rate <= 0 || (channels != 2 && channels != 4 && channels != 6 && channels != 8) || !render ||
+		audio_output.stream || audio_output.worker) {
 		return false;
 	}
 

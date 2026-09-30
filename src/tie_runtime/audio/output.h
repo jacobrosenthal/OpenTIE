@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* Renders frame_count interleaved frames with the channel count passed to
+ * TieAudioOutput_Start (2, 4, 6 or 8, SDL channel order). */
 typedef void (*TieAudioRenderFunc)(void* userdata, int16_t* frames, size_t frame_count);
 
 #include "tie_runtime/audio/config.h"

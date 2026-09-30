@@ -172,7 +172,7 @@ static bool TieAppConfig_ValidateSchemaKeys(const AeronConfigFile* document, boo
 				  "video", "render", "pbr", "point_lights");
 	VALIDATE_KEYS(document, "paths", warn, "installations");
 	VALIDATE_KEYS(document, "paths.installations", warn, "tie95", "tie98");
-	VALIDATE_KEYS(document, "audio", warn, "midi_backend", "music", "sb16_filter",
+	VALIDATE_KEYS(document, "audio", warn, "midi_backend", "music", "sb16_filter", "speakers",
 				  "prefer_tie95_frontend_voices", "music_ducking_volume_percent",
 				  "player_engine_sound_volume_percent", "fluidsynth", "sc55");
 	VALIDATE_KEYS(document, "audio.fluidsynth", warn, "soundfont_file");
@@ -413,6 +413,24 @@ static bool TieAppConfig_ParsePointLights(const AeronConfigFile* document, TieFl
 	return true;
 }
 
+static bool TieAppConfig_ParseSpeakerLayout(const char* name, TieSpeakerLayout* out) {
+	static const struct {
+		const char* name;
+		TieSpeakerLayout layout;
+	} layouts[] = {
+		{ "stereo", TIE_SPEAKER_LAYOUT_STEREO },
+		{ "quad", TIE_SPEAKER_LAYOUT_QUAD },
+		{ "5.1", TIE_SPEAKER_LAYOUT_SURROUND_51 },
+		{ "7.1", TIE_SPEAKER_LAYOUT_SURROUND_71 },
+	};
+	for (size_t index = 0; index < sizeof layouts / sizeof layouts[0]; ++index) {
+		if (strcmp(name, layouts[index].name) == 0) {
+			*out = layouts[index].layout;
+			return true;
+		}
+	}
+	return false;
+}
 static bool TieAppConfig_ParseComplete(const AeronConfigFile* document,
 									   const AeronSceneSsaoSettings* baseline_ssao,
 									   const AeronSceneShadowSettings* baseline_shadows,
@@ -426,6 +444,7 @@ static bool TieAppConfig_ParseComplete(const AeronConfigFile* document,
 	const char* update_rate;
 	const char* midi_backend;
 	const char* music_source;
+	const char* speakers;
 	if (!TieAppConfig_CheckVersion(document, error, capacity) ||
 		!TieAppConfig_ReadString(document, "paths.installations.tie95", out->tie95_data,
 								 sizeof out->tie95_data, error, capacity) ||
@@ -459,6 +478,11 @@ static bool TieAppConfig_ParseComplete(const AeronConfigFile* document,
 		out->music_source = TIE_MUSIC_TIE98;
 	else
 		return TieAppConfig_ConfigError(error, capacity, "invalid audio.music '%s'", music_source);
+	speakers = AeronConfigFile_GetString(document, "audio.speakers", NULL);
+	if (!speakers)
+		return TieAppConfig_ConfigError(error, capacity, "missing audio.speakers");
+	if (!TieAppConfig_ParseSpeakerLayout(speakers, &out->speaker_layout))
+		return TieAppConfig_ConfigError(error, capacity, "invalid audio.speakers '%s'", speakers);
 	if (!TieAppConfig_ReadBool(document, "audio.sb16_filter", &out->sb16_filter_enabled, error, capacity))
 		return false;
 	if (!TieAppConfig_ReadBool(document, "audio.prefer_tie95_frontend_voices",
@@ -722,6 +746,20 @@ static const char* TieAppConfig_VersionSelectionName(TieVersionSelection selecti
 	return NULL;
 }
 
+static const char* TieAppConfig_SpeakerLayoutName(TieSpeakerLayout layout) {
+	switch (layout) {
+		case TIE_SPEAKER_LAYOUT_STEREO:
+			return "stereo";
+		case TIE_SPEAKER_LAYOUT_QUAD:
+			return "quad";
+		case TIE_SPEAKER_LAYOUT_SURROUND_51:
+			return "5.1";
+		case TIE_SPEAKER_LAYOUT_SURROUND_71:
+			return "7.1";
+	}
+	return NULL;
+}
+
 static const char* TieAppConfig_MidiBackendName(TieMidiBackendKind backend) {
 	switch (backend) {
 		case TIE_MIDI_BACKEND_FLUIDSYNTH:
@@ -771,6 +809,7 @@ void TieAppConfig_GetLaunchOptions(const TieAppConfig* config, TieAppLaunchOptio
 	out->midi_backend = config->midi_backend;
 	out->sb16_filter_enabled = config->sb16_filter_enabled;
 	out->music_source = config->music_source;
+	out->speaker_layout = config->speaker_layout;
 }
 
 bool TieAppConfig_SetLiveFlightOptions(TieAppConfigState* state, const TieAppLiveFlightOptions* options,
@@ -837,7 +876,8 @@ bool TieAppConfig_SetLaunchOptions(TieAppConfigState* state, const TieAppLaunchO
 	const char* frontend_name = options ? TieAppConfig_VersionSelectionName(options->frontend_version) : NULL;
 	const char* flight_name = options ? TieAppConfig_VersionSelectionName(options->flight_version) : NULL;
 	const char* backend_name = options ? TieAppConfig_MidiBackendName(options->midi_backend) : NULL;
-	if (!state || !options || !frontend_name || !flight_name || !backend_name ||
+	const char* speakers_name = options ? TieAppConfig_SpeakerLayoutName(options->speaker_layout) : NULL;
+	if (!state || !options || !frontend_name || !flight_name || !backend_name || !speakers_name ||
 		strlen(options->tie95_data) >= TIE_GAME_DATA_PATH_MAX ||
 		strlen(options->tie98_data) >= TIE_GAME_DATA_PATH_MAX ||
 		strlen(options->fluidsynth_soundfont_file) >= TIE_GAME_DATA_PATH_MAX ||
@@ -870,7 +910,8 @@ bool TieAppConfig_SetLaunchOptions(TieAppConfigState* state, const TieAppLaunchO
 								 &aeron_error) ||
 		!AeronConfigFile_SetString(candidate, "audio.music",
 								   options->music_source == TIE_MUSIC_TIE98 ? "tie98" : "imuse",
-								   &aeron_error)) {
+								   &aeron_error) ||
+		!AeronConfigFile_SetString(candidate, "audio.speakers", speakers_name, &aeron_error)) {
 		AeronConfigFile_Destroy(candidate);
 		return TieAppConfig_LogAeronError(&aeron_error, error, capacity);
 	}

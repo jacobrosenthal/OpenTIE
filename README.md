@@ -55,6 +55,15 @@ SoundFont.
 The original prerecorded TIE98 music remains available when the complete 1998
 experience is preferred.
 
+## Surround sound
+
+OpenTIE can output quadraphonic, 5.1 or 7.1 audio. With a surround layout
+selected in the audio settings (or `audio.speakers` in `config.yaml`), flight
+sound effects are placed around the listener, so ships behind you are heard
+from the rear speakers instead of being folded onto the front. Music, speech
+and cutscene audio stay on the front speakers. The default is stereo, which
+keeps the original panning.
+
 ## Graphics
 
 OpenTIE offers classic and modern graphics modes. Classic mode preserves the

@@ -63,6 +63,7 @@ typedef struct TieAppLaunchOptions {
 	TieMidiBackendKind midi_backend;
 	bool sb16_filter_enabled;
 	TieMusicSource music_source;
+	TieSpeakerLayout speaker_layout;
 } TieAppLaunchOptions;
 
 typedef struct TieAppConfig {
@@ -77,6 +78,7 @@ typedef struct TieAppConfig {
 	bool sb16_filter_enabled;
 	bool prefer_tie95_frontend_voices;
 	TieMusicSource music_source;
+	TieSpeakerLayout speaker_layout;
 	int music_ducking_volume_percent;
 	int player_engine_sound_volume_percent;
 	TieAppUiConfig ui;

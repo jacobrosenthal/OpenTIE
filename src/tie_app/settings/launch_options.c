@@ -26,7 +26,8 @@ static bool TieLaunchOptions_LaunchOptionsValid(const TieAppLaunchOptions* optio
 		   (options->midi_backend == TIE_MIDI_BACKEND_FLUIDSYNTH ||
 			options->midi_backend == TIE_MIDI_BACKEND_FM4_OPL3 ||
 			options->midi_backend == TIE_MIDI_BACKEND_SC55) &&
-		   (options->music_source == TIE_MUSIC_IMUSE || options->music_source == TIE_MUSIC_TIE98);
+		   (options->music_source == TIE_MUSIC_IMUSE || options->music_source == TIE_MUSIC_TIE98) &&
+		   TieSpeakerLayout_Valid(options->speaker_layout);
 }
 
 static void TieLaunchOptions_LaunchOptionsNormalize(TieAppLaunchOptions* options) {
@@ -43,7 +44,7 @@ static bool TieLaunchOptions_LaunchOptionsEqual(const TieAppLaunchOptions* left,
 		   left->flight_version == right->flight_version && left->model_source == right->model_source &&
 		   left->midi_backend == right->midi_backend &&
 		   left->sb16_filter_enabled == right->sb16_filter_enabled &&
-		   left->music_source == right->music_source;
+		   left->music_source == right->music_source && left->speaker_layout == right->speaker_layout;
 }
 
 bool TieLaunchOptions_Configure(const TieAppLaunchOptions* active, TieLaunchOptionsPersistFn persist,

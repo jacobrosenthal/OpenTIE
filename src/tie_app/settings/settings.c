@@ -821,6 +821,15 @@ static void TieSettings_AudioPage(AeronUiContext* ui) {
 			TieSettings_SettingsReportError(error);
 	}
 	AeronUi_Spacer(ui, 8.0f);
+	AeronUi_Header(ui, "Speakers");
+	static const char* const speaker_layouts[] = { "Stereo", "Quadraphonic", "5.1 Surround", "7.1 Surround" };
+	int speaker_layout = (int)launch.speaker_layout;
+	if (AeronUi_Selector(ui, "Speaker Layout", &speaker_layout, speaker_layouts, 4)) {
+		launch.speaker_layout = (TieSpeakerLayout)speaker_layout;
+		launch_changed = true;
+	}
+	AeronUi_Help(ui, "Surround layouts place flight sound effects around you, including behind.");
+	AeronUi_Spacer(ui, 8.0f);
 	AeronUi_Header(ui, "Sound Blaster");
 	int sb16 = launch.sb16_filter_enabled;
 	if (AeronUi_Toggle(ui, "SB16 Low-pass Filter", &sb16)) {

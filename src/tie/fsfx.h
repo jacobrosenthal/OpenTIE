@@ -144,6 +144,13 @@ int16_t fsfx_calcvolume(uint16_t src_obj, uint16_t sound_id);
  */
 int32_t fsfx_calcpan(uint16_t src_obj, int16_t* volume_ptr);
 
+/*
+ * fsfx_calcsurround (port extension): full-azimuth placement for surround
+ * output. pan in [0..127] (64 = centre, hard left/right at 90 degrees);
+ * depth in [0..127] (0 ahead, 64 beside, 127 behind). No attenuation.
+ */
+void fsfx_calcsurround(uint16_t src_obj, int32_t* pan_out, int32_t* depth_out);
+
 /* FSFX-owned handle table and voice queue state. */
 #define FSFX_NUM_SOUND_HANDLES 131
 #define FSFX_TIE95_SOUND_TABLE_COUNT 128

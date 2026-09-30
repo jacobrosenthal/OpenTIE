@@ -1,9 +1,9 @@
 [submodule "aeron"]
 	path = aeron
-	url = https://github.com/elyosh/aeron
+	url = https://github.com/jacobrosenthal/aeron
 [submodule "src/landru"]
 	path = src/landru
 	url = https://github.com/elyosh/landru.git
 [submodule "src/imuse"]
 	path = src/imuse
-	url = https://github.com/elyosh/imuse.git
+	url = https://github.com/jacobrosenthal/imuse.git

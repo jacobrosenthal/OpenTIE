@@ -8,6 +8,27 @@ void TieAudio_Configure(const TieAudioConfig* config) {
 
 const TieAudioConfig* TieAudio_Config(void) { return &s_audio_config; }
 
+bool TieSpeakerLayout_Valid(TieSpeakerLayout layout) {
+	return layout == TIE_SPEAKER_LAYOUT_STEREO || layout == TIE_SPEAKER_LAYOUT_QUAD ||
+		   layout == TIE_SPEAKER_LAYOUT_SURROUND_51 || layout == TIE_SPEAKER_LAYOUT_SURROUND_71;
+}
+
+int TieSpeakerLayout_Channels(TieSpeakerLayout layout) {
+	switch (layout) {
+		case TIE_SPEAKER_LAYOUT_QUAD:
+			return 4;
+		case TIE_SPEAKER_LAYOUT_SURROUND_51:
+			return 6;
+		case TIE_SPEAKER_LAYOUT_SURROUND_71:
+			return 8;
+		case TIE_SPEAKER_LAYOUT_STEREO:
+			break;
+	}
+	return 2;
+}
+
+bool TieAudio_SurroundEnabled(void) { return s_audio_config.speaker_layout != TIE_SPEAKER_LAYOUT_STEREO; }
+
 bool TieAudio_SetMusicDuckingVolumePercent(int percent) {
 	if ((unsigned int)percent > 100u)
 		return false;

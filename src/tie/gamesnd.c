@@ -134,13 +134,40 @@ static void gamesnd_imuse_log(void* user, ImuseLogLevel level, const char* msg) 
  * filter. Aeron accepts this 44100 Hz mix and resamples it to its fixed
  * device rate. */
 #define GAMESND_AUDIO_RATE 44100
+#define GAMESND_QUAD_CHUNK_FRAMES 256
+
+/* Device channel count (SDL order); iMUSE renders 2 or 4 of them. */
+static int audio_output_channels = 2;
 
 static void gamesnd_RenderAudio(void* userdata, int16_t* frames, size_t frame_count) {
 	imuse_t* session = (imuse_t*)userdata;
+	const int channels = audio_output_channels;
+	if (channels <= 4) {
+		while (frame_count > 0) {
+			size_t chunk = frame_count > (size_t)INT_MAX ? (size_t)INT_MAX : frame_count;
+			(void)imuse_mix_s16_channels(session, frames, (int)chunk, channels);
+			frames += chunk * (size_t)channels;
+			frame_count -= chunk;
+		}
+		return;
+	}
+
+	/* 5.1 / 7.1: FL FR FC LFE BL BR [SL SR]. The quad bus supplies the
+	 * front and back pairs; the remaining speakers stay silent. */
+	int16_t quad[GAMESND_QUAD_CHUNK_FRAMES * 4];
 	while (frame_count > 0) {
-		size_t chunk = frame_count > (size_t)INT_MAX ? (size_t)INT_MAX : frame_count;
-		imuse_mix_s16(session, frames, (int)chunk);
-		frames += chunk * 2u;
+		size_t chunk = frame_count > GAMESND_QUAD_CHUNK_FRAMES ? GAMESND_QUAD_CHUNK_FRAMES : frame_count;
+		(void)imuse_mix_s16_channels(session, quad, (int)chunk, 4);
+		memset(frames, 0, chunk * (size_t)channels * sizeof *frames);
+		for (size_t frame = 0; frame < chunk; ++frame) {
+			const int16_t* in = &quad[frame * 4u];
+			int16_t* out = &frames[frame * (size_t)channels];
+			out[0] = in[0];
+			out[1] = in[1];
+			out[4] = in[2];
+			out[5] = in[3];
+		}
+		frames += chunk * (size_t)channels;
 		frame_count -= chunk;
 	}
 }
@@ -168,6 +195,7 @@ int16_t gamesnd_Open_Pre_iMuse(void) {
 		.waveMixCount = 4,
 		.waveOutputFilter =
 			audio_config->sb16_filter_enabled ? IMUSE_WAVE_OUTPUT_FILTER_SB16 : IMUSE_WAVE_OUTPUT_FILTER_NONE,
+		.waveOutputChannels = TieAudio_SurroundEnabled() ? 4 : 2,
 	};
 
 	/* imuse_create takes ownership of midiBackend unconditionally:
@@ -182,7 +210,9 @@ int16_t gamesnd_Open_Pre_iMuse(void) {
 	(void)gamesnd_SetMusicDuckingVolumePercent(audio_config->music_ducking_volume_percent);
 
 	audio_output_started = false;
-	audio_output_started = TieAudioOutput_Start(GAMESND_AUDIO_RATE, 2, gamesnd_RenderAudio, im);
+	audio_output_channels = TieSpeakerLayout_Channels(audio_config->speaker_layout);
+	audio_output_started =
+		TieAudioOutput_Start(GAMESND_AUDIO_RATE, audio_output_channels, gamesnd_RenderAudio, im);
 
 	/* The internal wave renderer is always present after I3, so the
 	 * digital sub-system is always available. */

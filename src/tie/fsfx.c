@@ -26,8 +26,10 @@
 #include "tie_runtime/runtime/inflight_state.h"
 #include "tie_runtime/runtime/profile.h"
 #include "tie_runtime/storage/storage.h"
+#include <imuse/commands.h>
 #include <imuse/hilevel.h>
 #include <imuse/lolevel.h>
+#include <math.h>
 
 /* --------------------------------------------------------------------------
  * FSFX-owned module globals.
@@ -744,6 +746,45 @@ int32_t fsfx_calcpan(uint16_t src_obj, int16_t* volume_ptr) {
 	return pan_out + 64;
 }
 
+/* Port extension for surround output. The original folds sounds behind the
+ * listener onto the front arc and attenuates them; with rear speakers the
+ * full azimuth is kept instead. Pan follows the original's linear azimuth
+ * mapping (hard left/right at 90 degrees) and depth runs 0 ahead, 64 beside,
+ * 127 behind. Elevation is ignored, as in fsfx_calcpan. */
+void fsfx_calcsurround(uint16_t src_obj, int32_t* pan_out, int32_t* depth_out) {
+	*pan_out = 64;
+	*depth_out = 0;
+	if (src_obj == 0xFFFF)
+		return;
+
+	double dx, dy, dz;
+	if (src_obj >= OBJ_REF_STATIC_BASE) {
+		create_getworldposition(src_obj, 0);
+		dx = (double)worldlocx - (double)camera.x;
+		dy = (double)worldlocy - (double)camera.y;
+		dz = (double)worldlocz - (double)camera.z;
+	} else {
+		dx = (double)objects[src_obj].world_x_prev - (double)camera.x;
+		dy = (double)objects[src_obj].world_y_prev - (double)camera.y;
+		dz = (double)objects[src_obj].world_z_prev - (double)camera.z;
+	}
+
+	/* Same eye-space rows as fsfx_calcpan, without its int16 narrowing:
+	 * only the direction matters here. */
+	const double eye_x = (double)worldeyeC1 * dz + (double)worldeyeB1 * dy + (double)worldeyeA1 * dx;
+	const double eye_z = (double)worldeyeC3 * dz + (double)worldeyeB3 * dy + (double)worldeyeA3 * dx;
+	if (eye_x == 0.0 && eye_z == 0.0)
+		return;
+
+	const double half_pi = 1.57079632679489661923;
+	const double azimuth = atan2(eye_x, eye_z);       /* 0 ahead, +right, +-pi behind */
+	const double lateral = atan2(eye_x, fabs(eye_z)); /* folded to [-pi/2, pi/2] */
+	long pan = lround(64.0 + 64.0 * lateral / half_pi);
+	long depth = lround(127.0 * fabs(azimuth) / (2.0 * half_pi));
+	*pan_out = pan < 0 ? 0 : pan > 127 ? 127 : (int32_t)pan;
+	*depth_out = depth < 0 ? 0 : depth > 127 ? 127 : (int32_t)depth;
+}
+
 /* --------------------------------------------------------------------------
  * Trigger dispatchers.
  * -------------------------------------------------------------------------- */
@@ -761,8 +802,15 @@ int8_t fsfx_triggersfx(uint16_t sound_id, uint16_t src_obj) {
 	if (!vol_buf)
 		return 0;
 
-	/* calcpan may reduce vol_buf further for back-hemisphere sounds. */
-	int32_t pan = fsfx_calcpan(src_obj, &vol_buf);
+	/* calcpan may reduce vol_buf further for back-hemisphere sounds. With
+	 * surround output the sound is placed behind the listener instead. */
+	int32_t pan;
+	int32_t depth = 0;
+	const bool surround = TieAudio_SurroundEnabled();
+	if (surround)
+		fsfx_calcsurround(src_obj, &pan, &depth);
+	else
+		pan = fsfx_calcpan(src_obj, &vol_buf);
 
 	uint16_t priority = ((uint16_t)vol_buf < 0x7Eu) ? (uint16_t)vol_buf : 125;
 
@@ -786,6 +834,8 @@ int8_t fsfx_triggersfx(uint16_t sound_id, uint16_t src_obj) {
 	imuse_start_sfx(im, (void*)sfx_id(sound_id));
 	imuse_set_param(im, sfx_id(sound_id), IM_PARAM_PRIORITY, priority);
 	imuse_set_param(im, sfx_id(sound_id), IM_PARAM_PAN, (int)pan);
+	if (surround)
+		imuse_set_param(im, sfx_id(sound_id), IMUSE_PARAM_SOUND_DEPTH, (int)depth);
 	imuse_set_param(im, sfx_id(sound_id), IM_PARAM_VOLUME, (uint16_t)vol_buf);
 	return 1;
 }
