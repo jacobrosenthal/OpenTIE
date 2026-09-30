@@ -308,6 +308,8 @@ int TieApplication_Run(const TieLaunchOptions* launch) {
 			Aeron_LogWarn("tie.audio", "could not open a %d-channel audio device; using stereo",
 						  speaker_channels);
 		speaker_layout = TIE_SPEAKER_LAYOUT_STEREO;
+		/* Keep the settings page and Ctrl+Alt+S in step with the device. */
+		app_config.requested.speaker_layout = speaker_layout;
 	}
 	Aeron_LogInfo("tie.audio", "speaker output: %d channels", TieSpeakerLayout_Channels(speaker_layout));
 	Aeron_PumpEvents();

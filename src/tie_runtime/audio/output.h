@@ -22,5 +22,9 @@ typedef void (*TieAudioRenderFunc)(void* userdata, int16_t* frames, size_t frame
 /* Aeron audio lifecycle backed by one queued Aeron PCM stream. */
 bool TieAudioOutput_Start(int sample_rate, int channels, TieAudioRenderFunc render, void* render_userdata);
 void TieAudioOutput_Stop(void);
+/* Reopens the shared output device with 2, 4, 6 or 8 channels. Stop this
+ * module's stream first; other device streams keep playing. */
+bool TieAudioOutput_SetDeviceChannels(int channels);
+int TieAudioOutput_DeviceChannels(void);
 
 #endif /* TIE_APP_AUDIO_OUTPUT_H */

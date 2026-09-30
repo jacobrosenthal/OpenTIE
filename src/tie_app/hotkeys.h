@@ -3,11 +3,14 @@
 
 #include <stdbool.h>
 
+#include "tie_runtime/audio/config.h"
+
 typedef struct AeronInputSnapshot AeronInputSnapshot;
 
 typedef struct TieHotkeys {
 	int last_fullscreen;
 	bool paused;
+	TieSpeakerLayout surround_layout; /* layout Ctrl+Alt+S restores */
 } TieHotkeys;
 
 typedef struct TieHotkeysFrame {

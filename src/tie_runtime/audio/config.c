@@ -29,6 +29,11 @@ int TieSpeakerLayout_Channels(TieSpeakerLayout layout) {
 
 bool TieAudio_SurroundEnabled(void) { return s_audio_config.speaker_layout != TIE_SPEAKER_LAYOUT_STEREO; }
 
+void TieAudio_SetSpeakerLayout(TieSpeakerLayout layout) {
+	if (TieSpeakerLayout_Valid(layout))
+		s_audio_config.speaker_layout = layout;
+}
+
 bool TieAudio_SetMusicDuckingVolumePercent(int percent) {
 	if ((unsigned int)percent > 100u)
 		return false;

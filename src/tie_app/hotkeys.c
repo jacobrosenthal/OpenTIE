@@ -1,6 +1,7 @@
 #include "tie_app/hotkeys.h"
 
 #include "aeron/aeron.h"
+#include "tie_app/settings/audio_options.h"
 #include "tie_app/settings/settings.h"
 #include "tie_app/settings/video_options.h"
 #include "tie_runtime/input/input.h"
@@ -54,6 +55,32 @@ static void TieHotkeys_ProcessFullscreen(const AeronInputSnapshot* input) {
 	TieInput_SuppressKey(trigger);
 }
 
+/* Ctrl+Alt+S switches between stereo and the last surround layout (5.1 when
+ * none has been used). The choice is saved like the settings selector. */
+static void TieHotkeys_ProcessSurround(TieHotkeys* hotkeys, const AeronInputSnapshot* input) {
+	const int trigger = TieHotkeys_Trigger(input, TIE_KEYBOARD_SHORTCUT_SURROUND);
+	if (trigger < 0)
+		return;
+	TieInput_SuppressKey(trigger);
+
+	TieAppLiveAudioOptions options;
+	char error[256];
+	TieAudioOptions_Get(&options);
+	if (options.speaker_layout != TIE_SPEAKER_LAYOUT_STEREO) {
+		hotkeys->surround_layout = options.speaker_layout;
+		options.speaker_layout = TIE_SPEAKER_LAYOUT_STEREO;
+	} else {
+		options.speaker_layout = hotkeys->surround_layout;
+	}
+	if (!TieAudioOptions_Set(&options, error, sizeof error)) {
+		Aeron_LogWarn("tie.audio", "could not toggle surround sound: %s", error);
+		return;
+	}
+	Aeron_LogInfo("tie.audio", "surround sound %s (%d channels)",
+				  options.speaker_layout == TIE_SPEAKER_LAYOUT_STEREO ? "disabled" : "enabled",
+				  TieSpeakerLayout_Channels(options.speaker_layout));
+}
+
 static bool TieHotkeys_ControllerStartPressed(const AeronInputSnapshot* input) {
 	if (!input)
 		return false;
@@ -100,6 +127,11 @@ void TieHotkeys_Init(TieHotkeys* hotkeys) {
 		return;
 	hotkeys->last_fullscreen = Aeron_Fullscreen();
 	hotkeys->paused = false;
+	hotkeys->surround_layout = TIE_SPEAKER_LAYOUT_SURROUND_51;
+	TieAppLiveAudioOptions audio = { 0 };
+	TieAudioOptions_Get(&audio);
+	if (audio.speaker_layout != TIE_SPEAKER_LAYOUT_STEREO && TieSpeakerLayout_Valid(audio.speaker_layout))
+		hotkeys->surround_layout = audio.speaker_layout;
 }
 
 TieHotkeysFrame TieHotkeys_Process(TieHotkeys* hotkeys, const AeronInputSnapshot* input) {
@@ -111,6 +143,7 @@ TieHotkeysFrame TieHotkeys_Process(TieHotkeys* hotkeys, const AeronInputSnapshot
 	if (!TieSettings_CapturesKeyboard()) {
 		TieHotkeys_ProcessDebugUi(input);
 		TieHotkeys_ProcessFullscreen(input);
+		TieHotkeys_ProcessSurround(hotkeys, input);
 	}
 	const bool was_open = TieSettings_Open();
 	frame.menu_open = TieHotkeys_ProcessSettings(input);

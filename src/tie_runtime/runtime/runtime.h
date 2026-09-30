@@ -27,6 +27,7 @@ void TieRuntime_SetWindowActive(bool active);
 void TieRuntime_RequestSettingsMenu(void);
 bool TieRuntime_ConsumeSettingsMenuRequest(void);
 bool TieRuntime_SetMusicDuckingVolumePercent(int percent);
+bool TieRuntime_SetSpeakerLayout(TieSpeakerLayout layout);
 
 /* Advances one host-visible tick using the supplied synthetic-clock delta. */
 void TieRuntime_Tick(int32_t delta_us);

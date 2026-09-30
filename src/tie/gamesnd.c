@@ -195,7 +195,11 @@ int16_t gamesnd_Open_Pre_iMuse(void) {
 		.waveMixCount = 4,
 		.waveOutputFilter =
 			audio_config->sb16_filter_enabled ? IMUSE_WAVE_OUTPUT_FILTER_SB16 : IMUSE_WAVE_OUTPUT_FILTER_NONE,
-		.waveOutputChannels = TieAudio_SurroundEnabled() ? 4 : 2,
+		/* Always mix on the quad bus so the speaker layout can change at
+		 * runtime. Stereo output folds the rear pair, which stays silent
+		 * because stereo placement never sets a depth, so the stereo mix is
+		 * unchanged. */
+		.waveOutputChannels = 4,
 	};
 
 	/* imuse_create takes ownership of midiBackend unconditionally:
@@ -254,6 +258,21 @@ void gamesnd_Set_CD_Volume(int volume) {
 	if (volume > 16)
 		volume = 16;
 	CDAUDIO_Set_Volume((uint32_t)(0xFFFFu * (uint32_t)volume / 16u));
+}
+
+bool gamesnd_SetOutputChannels(int channels) {
+	const bool restart = audio_output_started;
+	if (restart)
+		TieAudioOutput_Stop();
+	audio_output_started = false;
+
+	const bool reopened = TieAudioOutput_SetDeviceChannels(channels);
+	const int active = TieAudioOutput_DeviceChannels();
+	audio_output_channels = active > 0 ? active : 2;
+	if (restart)
+		audio_output_started =
+			TieAudioOutput_Start(GAMESND_AUDIO_RATE, audio_output_channels, gamesnd_RenderAudio, im);
+	return reopened && audio_output_channels == channels && (!restart || audio_output_started);
 }
 
 bool gamesnd_SetMusicDuckingVolumePercent(int percent) {

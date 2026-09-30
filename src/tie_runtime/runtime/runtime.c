@@ -172,6 +172,15 @@ bool TieRuntime_SetMusicDuckingVolumePercent(int percent) {
 	return TieAudio_SetMusicDuckingVolumePercent(percent);
 }
 
+bool TieRuntime_SetSpeakerLayout(TieSpeakerLayout layout) {
+	if (!TieSpeakerLayout_Valid(layout))
+		return false;
+	if (!gamesnd_SetOutputChannels(TieSpeakerLayout_Channels(layout)))
+		return false;
+	TieAudio_SetSpeakerLayout(layout);
+	return true;
+}
+
 /* SDL focus events replace the recovered WM_ACTIVATEAPP delivery. */
 void TieRuntime_SetWindowActive(bool active) {
 	if (!TieProfile_UsesDx5())

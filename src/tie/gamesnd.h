@@ -12,6 +12,9 @@ void gamesnd_Close_Pre_iMuse(void);
 void gamesnd_AdvanceAudio(int32_t elapsed_us);
 void gamesnd_Set_CD_Volume(int volume);
 bool gamesnd_SetMusicDuckingVolumePercent(int percent);
+/* Reopens the output device with 2, 4, 6 or 8 channels, restarting the iMUSE
+ * PCM stream if it is running. On failure the previous layout stays active. */
+bool gamesnd_SetOutputChannels(int channels);
 
 /* Engine-glow palette cycle driver. Reproduces the second half of
  * retail GAMESND_Host_Int (0x88adc..0x88bcf): on its own PIT-tick

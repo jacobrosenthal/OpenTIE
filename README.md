@@ -64,6 +64,9 @@ from the rear speakers instead of being folded onto the front. Music, speech
 and cutscene audio stay on the front speakers. The default is stereo, which
 keeps the original panning.
 
+Press `Ctrl+Alt+S` at any time to switch between stereo and surround. The
+layout changes immediately and is saved to your configuration.
+
 ## Graphics
 
 OpenTIE offers classic and modern graphics modes. Classic mode preserves the

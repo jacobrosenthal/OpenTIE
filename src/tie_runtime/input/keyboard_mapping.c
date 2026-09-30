@@ -46,6 +46,9 @@ TieKeyboardShortcut TieKeyboardMapping_Shortcut(AeronKeyChord source) {
 	if (key == AERON_KEY_A + ('m' - 'a') &&
 		(mod & (AERON_KEY_MOD_CTRL | AERON_KEY_MOD_ALT)) == (AERON_KEY_MOD_CTRL | AERON_KEY_MOD_ALT))
 		return TIE_KEYBOARD_SHORTCUT_MOUSE;
+	if (key == AERON_KEY_A + ('s' - 'a') &&
+		(mod & (AERON_KEY_MOD_CTRL | AERON_KEY_MOD_ALT)) == (AERON_KEY_MOD_CTRL | AERON_KEY_MOD_ALT))
+		return TIE_KEYBOARD_SHORTCUT_SURROUND;
 	return TIE_KEYBOARD_SHORTCUT_NONE;
 }
 

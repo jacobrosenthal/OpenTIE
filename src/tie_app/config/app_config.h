@@ -50,6 +50,7 @@ typedef struct TieAppLiveFlightOptions {
 
 typedef struct TieAppLiveAudioOptions {
 	int music_ducking_volume_percent;
+	TieSpeakerLayout speaker_layout;
 } TieAppLiveAudioOptions;
 
 typedef struct TieAppLaunchOptions {
@@ -63,7 +64,6 @@ typedef struct TieAppLaunchOptions {
 	TieMidiBackendKind midi_backend;
 	bool sb16_filter_enabled;
 	TieMusicSource music_source;
-	TieSpeakerLayout speaker_layout;
 } TieAppLaunchOptions;
 
 typedef struct TieAppConfig {

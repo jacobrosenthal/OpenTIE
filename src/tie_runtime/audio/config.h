@@ -49,5 +49,6 @@ bool TieSpeakerLayout_Valid(TieSpeakerLayout layout);
 int TieSpeakerLayout_Channels(TieSpeakerLayout layout);
 /* True when positional sounds are mixed front/rear instead of mirrored. */
 bool TieAudio_SurroundEnabled(void);
+void TieAudio_SetSpeakerLayout(TieSpeakerLayout layout);
 
 #endif

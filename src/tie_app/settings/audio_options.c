@@ -13,7 +13,13 @@ static struct {
 } g_audio_options;
 
 static bool TieAudioOptions_Valid(const TieAppLiveAudioOptions* options) {
-	return options && (unsigned int)options->music_ducking_volume_percent <= 100u;
+	return options && (unsigned int)options->music_ducking_volume_percent <= 100u &&
+		   TieSpeakerLayout_Valid(options->speaker_layout);
+}
+
+static bool TieAudioOptions_Equal(const TieAppLiveAudioOptions* left, const TieAppLiveAudioOptions* right) {
+	return left->music_ducking_volume_percent == right->music_ducking_volume_percent &&
+		   left->speaker_layout == right->speaker_layout;
 }
 
 bool TieAudioOptions_Configure(const TieAppLiveAudioOptions* requested, TieAudioOptionsApplyFn apply,
@@ -40,14 +46,13 @@ void TieAudioOptions_Get(TieAppLiveAudioOptions* out) {
 bool TieAudioOptions_Set(const TieAppLiveAudioOptions* options, char* error, size_t error_capacity) {
 	if (!g_audio_options.configured || !TieAudioOptions_Valid(options))
 		return false;
-	if (options->music_ducking_volume_percent == g_audio_options.requested.music_ducking_volume_percent)
+	if (TieAudioOptions_Equal(options, &g_audio_options.requested))
 		return true;
 	if (!g_audio_options.apply(&g_audio_options.requested, options, g_audio_options.user, error,
 							   error_capacity))
 		return false;
 	g_audio_options.requested = *options;
-	g_audio_options.dirty = g_audio_options.requested.music_ducking_volume_percent !=
-							g_audio_options.persisted.music_ducking_volume_percent;
+	g_audio_options.dirty = !TieAudioOptions_Equal(&g_audio_options.requested, &g_audio_options.persisted);
 	return true;
 }
 

@@ -791,6 +791,7 @@ void TieAppConfig_GetLiveAudioOptions(const TieAppConfig* config, TieAppLiveAudi
 		return;
 	*out = (TieAppLiveAudioOptions) {
 		.music_ducking_volume_percent = config->music_ducking_volume_percent,
+		.speaker_layout = config->speaker_layout,
 	};
 }
 
@@ -809,7 +810,6 @@ void TieAppConfig_GetLaunchOptions(const TieAppConfig* config, TieAppLaunchOptio
 	out->midi_backend = config->midi_backend;
 	out->sb16_filter_enabled = config->sb16_filter_enabled;
 	out->music_source = config->music_source;
-	out->speaker_layout = config->speaker_layout;
 }
 
 bool TieAppConfig_SetLiveFlightOptions(TieAppConfigState* state, const TieAppLiveFlightOptions* options,
@@ -854,11 +854,13 @@ bool TieAppConfig_SetLiveAudioOptions(TieAppConfigState* state, const TieAppLive
 									  char* error, size_t capacity) {
 	AeronConfigFile* candidate = NULL;
 	AeronConfigError aeron_error = { 0 };
-	if (!state || !options || (unsigned int)options->music_ducking_volume_percent > 100u)
+	const char* speakers_name = options ? TieAppConfig_SpeakerLayoutName(options->speaker_layout) : NULL;
+	if (!state || !options || (unsigned int)options->music_ducking_volume_percent > 100u || !speakers_name)
 		return TieAppConfig_ConfigError(error, capacity, "invalid live audio settings");
 	if (!AeronConfigFile_Clone(state->user_document, &candidate, &aeron_error) ||
 		!AeronConfigFile_SetInt(candidate, "audio.music_ducking_volume_percent",
-								options->music_ducking_volume_percent, &aeron_error)) {
+								options->music_ducking_volume_percent, &aeron_error) ||
+		!AeronConfigFile_SetString(candidate, "audio.speakers", speakers_name, &aeron_error)) {
 		AeronConfigFile_Destroy(candidate);
 		return TieAppConfig_LogAeronError(&aeron_error, error, capacity);
 	}
@@ -876,8 +878,7 @@ bool TieAppConfig_SetLaunchOptions(TieAppConfigState* state, const TieAppLaunchO
 	const char* frontend_name = options ? TieAppConfig_VersionSelectionName(options->frontend_version) : NULL;
 	const char* flight_name = options ? TieAppConfig_VersionSelectionName(options->flight_version) : NULL;
 	const char* backend_name = options ? TieAppConfig_MidiBackendName(options->midi_backend) : NULL;
-	const char* speakers_name = options ? TieAppConfig_SpeakerLayoutName(options->speaker_layout) : NULL;
-	if (!state || !options || !frontend_name || !flight_name || !backend_name || !speakers_name ||
+	if (!state || !options || !frontend_name || !flight_name || !backend_name ||
 		strlen(options->tie95_data) >= TIE_GAME_DATA_PATH_MAX ||
 		strlen(options->tie98_data) >= TIE_GAME_DATA_PATH_MAX ||
 		strlen(options->fluidsynth_soundfont_file) >= TIE_GAME_DATA_PATH_MAX ||
@@ -910,8 +911,7 @@ bool TieAppConfig_SetLaunchOptions(TieAppConfigState* state, const TieAppLaunchO
 								 &aeron_error) ||
 		!AeronConfigFile_SetString(candidate, "audio.music",
 								   options->music_source == TIE_MUSIC_TIE98 ? "tie98" : "imuse",
-								   &aeron_error) ||
-		!AeronConfigFile_SetString(candidate, "audio.speakers", speakers_name, &aeron_error)) {
+								   &aeron_error)) {
 		AeronConfigFile_Destroy(candidate);
 		return TieAppConfig_LogAeronError(&aeron_error, error, capacity);
 	}

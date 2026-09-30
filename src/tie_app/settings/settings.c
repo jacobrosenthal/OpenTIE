@@ -185,12 +185,18 @@ static bool TieSettings_PersistFlightOptions(const TieAppLiveFlightOptions* opti
 static bool TieSettings_ApplyAudioOptions(const TieAppLiveAudioOptions* previous,
 										  const TieAppLiveAudioOptions* requested, void* user, char* error,
 										  size_t error_capacity) {
-	(void)previous;
 	(void)user;
-	if (TieRuntime_SetMusicDuckingVolumePercent(requested->music_ducking_volume_percent))
-		return true;
-	snprintf(error, error_capacity, "could not apply the music ducking volume");
-	return false;
+	if (requested->music_ducking_volume_percent != previous->music_ducking_volume_percent &&
+		!TieRuntime_SetMusicDuckingVolumePercent(requested->music_ducking_volume_percent)) {
+		snprintf(error, error_capacity, "could not apply the music ducking volume");
+		return false;
+	}
+	if (requested->speaker_layout != previous->speaker_layout &&
+		!TieRuntime_SetSpeakerLayout(requested->speaker_layout)) {
+		snprintf(error, error_capacity, "the audio device does not support this speaker layout");
+		return false;
+	}
+	return true;
 }
 
 static bool TieSettings_PersistAudioOptions(const TieAppLiveAudioOptions* options, void* user, char* error,
@@ -823,12 +829,15 @@ static void TieSettings_AudioPage(AeronUiContext* ui) {
 	AeronUi_Spacer(ui, 8.0f);
 	AeronUi_Header(ui, "Speakers");
 	static const char* const speaker_layouts[] = { "Stereo", "Quadraphonic", "5.1 Surround", "7.1 Surround" };
-	int speaker_layout = (int)launch.speaker_layout;
+	int speaker_layout = (int)audio.speaker_layout;
 	if (AeronUi_Selector(ui, "Speaker Layout", &speaker_layout, speaker_layouts, 4)) {
-		launch.speaker_layout = (TieSpeakerLayout)speaker_layout;
-		launch_changed = true;
+		char error[512];
+		audio.speaker_layout = (TieSpeakerLayout)speaker_layout;
+		if (!TieAudioOptions_Set(&audio, error, sizeof error))
+			TieSettings_SettingsReportError(error);
 	}
-	AeronUi_Help(ui, "Surround layouts place flight sound effects around you, including behind.");
+	AeronUi_Help(ui, "Surround layouts place flight sound effects around you, including behind. "
+					 "Ctrl+Alt+S toggles surround in game.");
 	AeronUi_Spacer(ui, 8.0f);
 	AeronUi_Header(ui, "Sound Blaster");
 	int sb16 = launch.sb16_filter_enabled;

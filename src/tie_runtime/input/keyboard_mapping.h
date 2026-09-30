@@ -29,6 +29,7 @@ typedef enum TieKeyboardShortcut {
 	TIE_KEYBOARD_SHORTCUT_FULLSCREEN,
 	TIE_KEYBOARD_SHORTCUT_PAUSE,
 	TIE_KEYBOARD_SHORTCUT_MOUSE,
+	TIE_KEYBOARD_SHORTCUT_SURROUND,
 } TieKeyboardShortcut;
 
 void TieKeyboardMapping_SetPolicy(TieKeyboardPlatform platform, bool debug_available);

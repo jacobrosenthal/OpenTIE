@@ -89,6 +89,14 @@ bool TieAudioOutput_Start(int sample_rate, int channels, TieAudioRenderFunc rend
 	return true;
 }
 
+bool TieAudioOutput_SetDeviceChannels(int channels) {
+	if (audio_output.stream)
+		return false;
+	return Aeron_AudioSetOutputChannels(channels) != 0;
+}
+
+int TieAudioOutput_DeviceChannels(void) { return Aeron_AudioOutputChannels(); }
+
 void TieAudioOutput_Stop(void) {
 	if (!audio_output.stream)
 		return;
